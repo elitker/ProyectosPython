@@ -1,8 +1,10 @@
 import subprocess as sp
 
 """
-Se utiliza este script para cambiar rapidamente entre configuraciones IP de la
-placa de red Ethernet.
+Se utiliza este script para cambiar rapidamente entre configuraciones IP de la placa de red Ethernet.
+
+Script: Configuracion IP de la placa de red Ethernet.
+Autor: Elitker
 """
 
 # -------------------------------- #
@@ -115,8 +117,3 @@ else:
     resultado2 = proceso2.wait()
 
 print("Fin")
-
-"""
-Script: Configuracion IP de la placa de red Ethernet.
-Autor: Elitker
-"""

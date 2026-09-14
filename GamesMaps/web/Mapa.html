@@ -1,182 +1,889 @@
 <style>
-    #map { height: 90vh; };
-    .myDivIcon {
-  text-align: center;
-  /* Horizontally center the text (icon) */
-  line-height: 20px;
-  /* Vertically center the text (icon) */
-  }
+    #gmScreen {
+        height: calc(100vh - 56px);
+        min-height: 540px;
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        background: #0f172a;
+    }
 
-.select2-dropdown {
-  border-radius: 0;
-  box-shadow: #444 0px 3px 5px;
-  border: 0;
-}
+    #gmPanel {
+        background: #ffffff;
+        border-right: 1px solid #dbe3ef;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .gm-panel-header {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #1f2937, #111827);
+        color: #fff;
+    }
+
+    .gm-panel-body {
+        padding: 1rem;
+        overflow: auto;
+        min-height: 0;
+    }
+
+    .gm-stat {
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: .75rem;
+        padding: .75rem;
+    }
+
+    .gm-category-list {
+        border: 1px solid #e5e7eb;
+        border-radius: .75rem;
+        overflow: auto;
+        max-height: 245px;
+        background: #fff;
+    }
+
+    .gm-category-row {
+        display: grid;
+        grid-template-columns: 1.35rem 1.75rem 1fr auto;
+        align-items: center;
+        gap: .45rem;
+        padding: .45rem .65rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: .86rem;
+    }
+
+    .gm-category-row:last-child {
+        border-bottom: 0;
+    }
+
+    .gm-category-row img,
+    .gm-result-icon {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+    }
+
+    .gm-category-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .gm-results {
+        border: 1px solid #e5e7eb;
+        border-radius: .75rem;
+        overflow: auto;
+        max-height: 260px;
+    }
+
+    .gm-result {
+        display: grid;
+        grid-template-columns: 1.75rem 1fr auto;
+        align-items: center;
+        gap: .5rem;
+        padding: .55rem .7rem;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        background: #fff;
+    }
+
+    .gm-result:hover {
+        background: #eff6ff;
+    }
+
+    .gm-result:last-child {
+        border-bottom: 0;
+    }
+
+    .gm-result-title {
+        font-weight: 600;
+        font-size: .88rem;
+        line-height: 1.1rem;
+    }
+
+    .gm-result-subtitle {
+        color: #64748b;
+        font-size: .76rem;
+        line-height: 1rem;
+    }
+
+    .gm-map-area {
+        position: relative;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+        background: #111827;
+    }
+
+    .gm-map-toolbar {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+        z-index: 500;
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+        pointer-events: none;
+    }
+
+    .gm-map-toolbar > * {
+        pointer-events: auto;
+    }
+
+    .gm-toolbar-hint {
+        background: rgba(15, 23, 42, .86);
+        color: #fff;
+        border-radius: .65rem;
+        padding: .5rem .75rem;
+        font-size: .86rem;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .2);
+    }
+
+    .gm-popup .btn {
+        margin-right: .25rem;
+        margin-top: .35rem;
+    }
+
+    .gm-marker-found {
+        filter: grayscale(100%);
+    }
+
+    .leaflet-tooltip.gm-measure-tooltip {
+        background: #111827;
+        color: #fff;
+        border: 0;
+        box-shadow: 0 8px 20px rgba(0,0,0,.24);
+        font-weight: 600;
+    }
+
+    @media (max-width: 900px) {
+        #gmScreen {
+            grid-template-columns: 1fr;
+            grid-template-rows: 330px 1fr;
+        }
+
+        #gmPanel {
+            border-right: 0;
+            border-bottom: 1px solid #dbe3ef;
+        }
+    }
 </style>
 
-<div id="myModal" class="modal">
- 
-    <!-- Modal content -->
-    <div class="modal-content" style="margin: 10%;">
-            <span class="close">&times;</span>
-            <div style="display: flex;">
+<section id="gmScreen">
+    <aside id="gmPanel">
+        <div class="gm-panel-header">
+            <div class="d-flex justify-content-between align-items-start gap-2">
                 <div>
-                    <select class="form-select" id="slIConos" is="ms-dropdown" data-child-height="350">
-                    </select>
+                    <h1 class="h4 mb-1">Mapa interactivo</h1>
+                    <div class="small opacity-75">Inspirado en flujos tipo MapGenie: filtros, búsqueda, progreso y notas.</div>
                 </div>
-            </div>
-            <div>
-                <label class="form-label" for="tbCoords">Coordenadas:</label>
-                <input class="form-control" type="text" name="Coords" id="tbCoords">
-            </div>
-            <div>
-                <label class="form-label" for="tbDescrip">Descripcion:</label>
-                <input class="form-control" type="text" name="Descripcion" id="tbDescrip">
-            </div>
-            <div style="text-align: center; padding-top: 2rem;">
-                <button class="btn-secondary btn-lg" id="btnEnviar">
-                    Guardar
+                <button id="btnVolverMapas" class="btn btn-sm btn-outline-light" title="Volver a mapas">
+                    <i class="fa-solid fa-arrow-left"></i>
                 </button>
             </div>
+        </div>
+
+        <div class="gm-panel-body">
+            <div id="gmStatus" class="mb-3"></div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold" for="gmSearch">Búsqueda rápida</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input id="gmSearch" class="form-control" type="search" placeholder="Buscar por nota, icono o coordenada...">
+                </div>
+            </div>
+
+            <div class="gm-stat mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Progreso</strong>
+                    <span id="gmProgressText" class="small text-muted">0 / 0</span>
+                </div>
+                <div class="progress" style="height: .65rem;">
+                    <div id="gmProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div id="gmVisibleText" class="small text-muted mt-2">0 marcadores visibles</div>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-semibold mb-0">Estado</label>
+                </div>
+                <div class="btn-group btn-group-sm w-100" role="group" aria-label="Filtros por estado">
+                    <input type="checkbox" class="btn-check" id="gmShowPending" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="gmShowPending">Pendientes</label>
+
+                    <input type="checkbox" class="btn-check" id="gmShowVisited" autocomplete="off" checked>
+                    <label class="btn btn-outline-success" for="gmShowVisited">Visitados</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-semibold mb-0">Categorías / iconos</label>
+                    <div class="btn-group btn-group-sm">
+                        <button id="gmSelectAll" class="btn btn-outline-secondary" type="button">Todos</button>
+                        <button id="gmSelectNone" class="btn btn-outline-secondary" type="button">Ninguno</button>
+                    </div>
+                </div>
+                <div id="gmCategoryList" class="gm-category-list">
+                    <div class="p-3 text-muted small">Cargando iconos...</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="form-label fw-semibold mb-0">Resultados visibles</label>
+                    <span id="gmResultCount" class="badge bg-secondary">0</span>
+                </div>
+                <div id="gmResults" class="gm-results">
+                    <div class="p-3 text-muted small">Sin marcadores.</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="gm-map-area">
+        <div class="gm-map-toolbar">
+            <button id="btnMeasure" class="btn btn-sm btn-light shadow-sm" type="button">
+                <i class="fa-solid fa-ruler-combined me-1"></i> Medir distancia
+            </button>
+            <button id="btnClearMeasure" class="btn btn-sm btn-outline-light shadow-sm" type="button">
+                <i class="fa-solid fa-eraser me-1"></i> Limpiar medida
+            </button>
+            <span id="gmHint" class="gm-toolbar-hint">Clic derecho sobre el mapa para agregar un marcador.</span>
+        </div>
+        <div id="map"></div>
     </div>
+</section>
 
-</div> 
-
-
-
-<div id="map"></div>
-
-
+<div class="modal fade" id="markerModal" tabindex="-1" aria-labelledby="markerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="markerModalLabel">Nuevo marcador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="markerModalMessage"></div>
+                <div class="mb-3">
+                    <label class="form-label" for="slIconos">Categoría / icono</label>
+                    <select class="form-select" id="slIconos"></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="tbCoords">Coordenadas</label>
+                    <input class="form-control" type="text" name="Coords" id="tbCoords" readonly>
+                </div>
+                <div>
+                    <label class="form-label" for="tbDescrip">Nota / descripción</label>
+                    <textarea class="form-control" name="Descripcion" id="tbDescrip" rows="3" placeholder="Ej: bobblehead, loot, entrada, enemigo, misión..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" id="btnSaveMarker">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Guardar marcador
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    var _marcadores = {};
-    function mostrar_modal(_map){
-        // Get the modal
-        var modal = document.getElementById("myModal");
+    if (window.GamesMap && typeof window.GamesMap.destroy === 'function') {
+        window.GamesMap.destroy();
+    }
 
-        // Get the <span> element that closes the modal
-        var span = document.getElementsByClassName("close")[0];
+    window.GamesMap = (function(){
+        let map = null;
+        let addModal = null;
+        let pendingLatLng = null;
+        let iconCatalog = [];
+        let activeIconIds = new Set();
+        let allMarkers = [];
+        let measuring = false;
+        let measurePoints = [];
+        let measureLayer = null;
 
-        cargar_iconos();
+        const state = {
+            query: '',
+            showVisited: true,
+            showPending: true,
+        };
 
-        var _latlng = _map.latlng;
-        //LatLng(529.778744, 625)
-        var _coordenadas = new String(_latlng.lat + '|' + _latlng.lng);
-        $('#tbCoords').val(_coordenadas);
-        modal.style.display = "block";
-
-        span.onclick = function() {
-            modal.style.display = "none";
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : String(value);
+            return div.innerHTML;
         }
 
-        // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
+        function formatCoord(latlng) {
+            return latlng.lat.toFixed(6) + '|' + latlng.lng.toFixed(6);
+        }
+
+        function mostrarEstado(tipo, mensaje) {
+            if (!mensaje) {
+                $('#gmStatus').empty();
+                return;
             }
+            $('#gmStatus').html('<div class="alert alert-' + tipo + ' py-2 px-3 mb-0 small">' + mensaje + '</div>');
         }
-    };
 
-    function cargar_iconos(){
-        let datos = eel.get_iconos()()
-       .then(retData => {
-        datos = retData;
-            $.each(datos, function(i, option) {
-                $('#slIConos').append($('<option/>').attr("value", option.id).text(option.name).attr("data-image", option.image))
-            });
-       })
-       .catch(e => console.log(e));        
-    };
-
-    function param() {
-        return {
-            icono: $('#slIConos').val(),
-            coords: $('#tbCoords').val(),
-            descri: $('#tbDescrip').val()
-        }
-    };
-
-    $('#btnEnviar').click(async function () {
-        await eel.guardar_marcador(param())(function(_res){
-            console.log(_res);
-
-            if(_res !== "OK"){
-                alert('punto no agregado');
-            }
-            else{
-                $('#myModal').hide();
-                $.get('Mapa.html').done(function (result) {
-                    $("#MiBody").html(result);
+        function bindUI() {
+            $('#btnVolverMapas').on('click', function(){
+                $.get('Mapas.html').done(function (result) {
+                    $('#MiBody').html(result);
                 });
+            });
+
+            $('#gmSearch').on('input', function(){
+                state.query = $(this).val().trim().toLowerCase();
+                applyFilters();
+            });
+
+            $('#gmShowVisited').on('change', function(){
+                state.showVisited = $(this).prop('checked');
+                applyFilters();
+            });
+
+            $('#gmShowPending').on('change', function(){
+                state.showPending = $(this).prop('checked');
+                applyFilters();
+            });
+
+            $('#gmSelectAll').on('click', function(){
+                activeIconIds = new Set(iconCatalog.map(icon => String(icon.id)));
+                $('.gm-category-check').prop('checked', true);
+                applyFilters();
+            });
+
+            $('#gmSelectNone').on('click', function(){
+                activeIconIds = new Set();
+                $('.gm-category-check').prop('checked', false);
+                applyFilters();
+            });
+
+            $('#btnMeasure').on('click', toggleMeasure);
+            $('#btnClearMeasure').on('click', function(){ clearMeasurement(true); });
+            $('#btnSaveMarker').on('click', saveMarker);
+        }
+
+        async function init() {
+            bindUI();
+            addModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('markerModal'));
+            mostrarEstado('info', 'Cargando mapa e iconos...');
+
+            try {
+                const [rutaMapa, iconos] = await Promise.all([
+                    eel.ruta_mapa()(),
+                    eel.get_iconos()()
+                ]);
+
+                if (!rutaMapa) {
+                    mostrarEstado('warning', 'No hay un mapa seleccionado. Vuelve a la pantalla anterior y elige uno.');
+                    return;
+                }
+
+                iconCatalog = (iconos || []).filter(icon => Number(icon.id) > 0);
+                activeIconIds = new Set(iconCatalog.map(icon => String(icon.id)));
+                renderIconSelect();
+                renderCategories();
+                await setupMap(rutaMapa);
+                await loadMarkers();
+                mostrarEstado('', '');
+            } catch (error) {
+                console.error(error);
+                mostrarEstado('danger', 'No se pudo inicializar el mapa. Revisa la consola de Python/JavaScript.');
+            }
+        }
+
+        function renderIconSelect() {
+            const select = $('#slIconos');
+            select.empty();
+            select.append('<option value="0">Seleccionar...</option>');
+
+            iconCatalog.forEach(icon => {
+                select.append('<option value="' + icon.id + '">' + escapeHtml(icon.name) + '</option>');
+            });
+        }
+
+        function renderCategories() {
+            const container = $('#gmCategoryList');
+            if (!iconCatalog.length) {
+                container.html('<div class="p-3 text-muted small">No hay iconos para este juego. Agrega archivos PNG/SVG dentro de la carpeta Iconos y sincroniza.</div>');
+                return;
             }
 
-        });
-    });
+            const html = iconCatalog.map(icon => {
+                return '<label class="gm-category-row" title="' + escapeHtml(icon.name) + '">' +
+                    '<input class="form-check-input gm-category-check" type="checkbox" value="' + icon.id + '" checked>' +
+                    '<img src="' + escapeHtml(icon.image) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+                    '<span class="gm-category-label">' + escapeHtml(icon.name) + '</span>' +
+                    '<span class="badge bg-light text-dark gm-category-count" data-icon-id="' + icon.id + '">0</span>' +
+                '</label>';
+            }).join('');
 
-    async function cargar_marcadores_base(){
-        var _m = await eel.get_marcadores()(function(_marks){
-            _marks.forEach(d => {
-                console.log('dimensiones: ' + d[4]);
-                var LeafIcon = L.icon({
-                                iconUrl: d[0],
-                                iconSize:     d[4], // size of the icon
-                                shadowSize:   d[4], // size of the shadow
-                            });
-                __visited = d[2];
-                __id_point = d[3];
-                console.log('visited=' + __visited);
-                console.log('id_point=' + __id_point);
-                var popup = L.popup().setContent(
-                    '<input type="checkbox" aria-label="check" id="cb_'+__id_point+'" onchange="Opacidad(this)"><p> Visitado</p>'
-                );
-                var marker = L.marker([d[1][0], d[1][1]], {icon: LeafIcon, alt: __id_point});
-                // var marker = L.marker([d[1][0], d[1][1]], {icon: redMarker, alt: __id_point});
-                marker.bindPopup(popup);
-                if(__visited === 0){
-                    marker.setOpacity(1);
+            container.html(html);
+            $('.gm-category-check').on('change', function(){
+                const id = String($(this).val());
+                if ($(this).prop('checked')) {
+                    activeIconIds.add(id);
+                } else {
+                    activeIconIds.delete(id);
                 }
-                else{
-                    marker.setOpacity(0.4);
-                }
-                marker.addTo(map);
-                _marcadores[__id_point] = marker;
+                applyFilters();
             });
-        });
-    };
-
-    async function Opacidad(elem){
-        var seleccionado = $(elem).prop('checked');
-        var _id_marcador = $(elem).prop('id');
-        let split = _id_marcador.split('_');
-        _id_marcador = split[1];
-        await eel.marcar_visitado(_id_marcador)();
-        var marker = _marcadores[_id_marcador];
-        if(seleccionado){
-            marker.setOpacity(0.4);
         }
-        else{
-            marker.setOpacity(1);
+
+        function setupMap(rutaMapa) {
+            return new Promise((resolve) => {
+                map = L.map('map', {
+                    crs: L.CRS.Simple,
+                    minZoom: -5,
+                    zoomSnap: 0.25,
+                    zoomDelta: 0.5,
+                    attributionControl: false,
+                });
+
+                const image = new Image();
+                image.onload = function() {
+                    const width = image.naturalWidth || 1000;
+                    const height = image.naturalHeight || 1000;
+                    const bounds = [[0, 0], [height, width]];
+                    L.imageOverlay(rutaMapa, bounds).addTo(map);
+                    map.fitBounds(bounds);
+                    map.setMaxBounds(L.latLngBounds(bounds).pad(0.35));
+                    registerMapEvents();
+                    resolve();
+                };
+                image.onerror = function() {
+                    const bounds = [[0, 0], [1000, 1000]];
+                    L.imageOverlay(rutaMapa, bounds).addTo(map);
+                    map.fitBounds(bounds);
+                    registerMapEvents();
+                    mostrarEstado('warning', 'No se pudo leer el tamaño real de la imagen. Se usó un lienzo 1000x1000.');
+                    resolve();
+                };
+                image.src = rutaMapa;
+            });
         }
-    };
 
-    $(document).ready(async function() {
-        var __ruta;
-        var datos = await eel.ruta_mapa()()
-        .then(data => {
-            __ruta = data;
-        }).catch(e => console.log(e));
+        function registerMapEvents() {
+            map.on('contextmenu', function(event){
+                if (!measuring) {
+                    openMarkerModal(event.latlng);
+                }
+            });
 
-        map = L.map('map', {
-            crs: L.CRS.Simple
-        });
-        var bounds = [[0,0], [1000,1000]];
-        var image = L.imageOverlay(__ruta, bounds).addTo(map);
-        map.fitBounds(bounds);
+            map.on('click', function(event){
+                if (measuring) {
+                    addMeasurePoint(event.latlng);
+                }
+            });
+        }
 
-        cargar_marcadores_base();
+        function openMarkerModal(latlng) {
+            pendingLatLng = latlng;
+            $('#markerModalMessage').empty();
+            $('#tbCoords').val(formatCoord(latlng));
+            $('#tbDescrip').val('');
 
-        map.on('contextmenu', mostrar_modal);
+            if (iconCatalog.length && $('#slIconos').val() === '0') {
+                $('#slIconos').val(String(iconCatalog[0].id));
+            }
 
-        delete _marcadores;
+            addModal.show();
+        }
+
+        async function saveMarker() {
+            if (!pendingLatLng) {
+                return;
+            }
+
+            const payload = {
+                icono: Number($('#slIconos').val()),
+                coords: $('#tbCoords').val(),
+                descri: $('#tbDescrip').val()
+            };
+
+            $('#btnSaveMarker').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Guardando...');
+            $('#markerModalMessage').empty();
+
+            try {
+                const resultado = await eel.guardar_marcador(payload)();
+                if (!resultado || resultado.ok === false) {
+                    $('#markerModalMessage').html('<div class="alert alert-warning py-2">' + escapeHtml(resultado && resultado.message ? resultado.message : 'No se pudo guardar el marcador.') + '</div>');
+                    return;
+                }
+
+                addModal.hide();
+                pendingLatLng = null;
+                await loadMarkers();
+            } catch (error) {
+                console.error(error);
+                $('#markerModalMessage').html('<div class="alert alert-danger py-2">Error al guardar el marcador.</div>');
+            } finally {
+                $('#btnSaveMarker').prop('disabled', false).html('<i class="fa-solid fa-floppy-disk me-1"></i> Guardar marcador');
+            }
+        }
+
+        async function loadMarkers() {
+            allMarkers.forEach(markerData => {
+                if (markerData.leaflet && map.hasLayer(markerData.leaflet)) {
+                    map.removeLayer(markerData.leaflet);
+                }
+            });
+            allMarkers = [];
+
+            const markers = await eel.get_marcadores()();
+            (markers || []).forEach(markerData => {
+                markerData.leaflet = createLeafletMarker(markerData);
+                allMarkers.push(markerData);
+            });
+
+            applyFilters();
+        }
+
+        function createLeafletMarker(markerData) {
+            const leafletMarker = L.marker(markerData.coords, {
+                icon: buildLeafletIcon(markerData),
+                alt: String(markerData.id),
+            });
+            leafletMarker.bindPopup(buildPopup(markerData));
+            syncMarkerVisual(markerData, leafletMarker);
+            return leafletMarker;
+        }
+
+        function buildLeafletIcon(markerData) {
+            const size = markerData.dimensions || [30, 30];
+            return L.icon({
+                iconUrl: markerData.icon_url,
+                iconSize: size,
+                iconAnchor: [Math.round(size[0] / 2), Math.round(size[1] / 2)],
+                popupAnchor: [0, -Math.round(size[1] / 2)],
+                className: markerData.visited ? 'gm-marker-found' : '',
+            });
+        }
+
+        function buildPopup(markerData) {
+            const checked = markerData.visited ? 'checked' : '';
+            const descripcion = markerData.description ? escapeHtml(markerData.description) : '<em class="text-muted">Sin descripción</em>';
+            return '<div class="gm-popup" style="min-width: 210px;">' +
+                '<div class="fw-bold mb-1">' + escapeHtml(markerData.icon_name) + '</div>' +
+                '<div class="small mb-2">' + descripcion + '</div>' +
+                '<div class="text-muted small mb-2">Coords: ' + escapeHtml(markerData.coords_text) + '</div>' +
+                '<label class="form-check-label small d-flex align-items-center gap-2">' +
+                    '<input class="form-check-input mt-0" type="checkbox" ' + checked + ' onchange="GamesMap.toggleVisited(' + markerData.id + ', this.checked)"> Visitado' +
+                '</label>' +
+                '<button class="btn btn-sm btn-outline-primary" onclick="GamesMap.editMarker(' + markerData.id + ')"><i class="fa-solid fa-pen"></i> Editar</button>' +
+                '<button class="btn btn-sm btn-outline-danger" onclick="GamesMap.deleteMarker(' + markerData.id + ')"><i class="fa-solid fa-trash"></i> Eliminar</button>' +
+            '</div>';
+        }
+
+        function syncMarkerVisual(markerData, leafletMarker) {
+            const marker = leafletMarker || markerData.leaflet;
+            if (!marker) {
+                return;
+            }
+            marker.setOpacity(markerData.visited ? 0.38 : 1);
+        }
+
+        function markerMatches(markerData) {
+            const iconEnabled = activeIconIds.has(String(markerData.icon_id));
+            const stateEnabled = markerData.visited ? state.showVisited : state.showPending;
+            const text = [
+                markerData.description,
+                markerData.icon_name,
+                markerData.coords_text,
+            ].join(' ').toLowerCase();
+            const queryEnabled = !state.query || text.includes(state.query);
+            return iconEnabled && stateEnabled && queryEnabled;
+        }
+
+        function applyFilters() {
+            if (!map) {
+                return;
+            }
+
+            const visibleMarkers = [];
+            allMarkers.forEach(markerData => {
+                const visible = markerMatches(markerData);
+                if (visible) {
+                    visibleMarkers.push(markerData);
+                    if (!map.hasLayer(markerData.leaflet)) {
+                        markerData.leaflet.addTo(map);
+                    }
+                } else if (map.hasLayer(markerData.leaflet)) {
+                    map.removeLayer(markerData.leaflet);
+                }
+            });
+
+            updateProgress(visibleMarkers);
+            updateCategoryCounts();
+            renderResults(visibleMarkers);
+        }
+
+        function updateProgress(visibleMarkers) {
+            const total = allMarkers.length;
+            const visited = allMarkers.filter(marker => marker.visited).length;
+            const percent = total ? Math.round((visited / total) * 100) : 0;
+
+            $('#gmProgressText').text(visited + ' / ' + total + ' (' + percent + '%)');
+            $('#gmProgressBar')
+                .css('width', percent + '%')
+                .attr('aria-valuenow', percent);
+            $('#gmVisibleText').text(visibleMarkers.length + ' marcadores visibles');
+            $('#gmResultCount').text(visibleMarkers.length);
+        }
+
+        function updateCategoryCounts() {
+            const totals = {};
+            allMarkers.forEach(marker => {
+                const id = String(marker.icon_id);
+                if (!totals[id]) {
+                    totals[id] = {total: 0, visited: 0};
+                }
+                totals[id].total += 1;
+                totals[id].visited += marker.visited ? 1 : 0;
+            });
+
+            $('.gm-category-count').each(function(){
+                const id = String($(this).data('icon-id'));
+                const item = totals[id] || {total: 0, visited: 0};
+                $(this).text(item.visited + '/' + item.total);
+            });
+        }
+
+        function renderResults(visibleMarkers) {
+            if (!visibleMarkers.length) {
+                $('#gmResults').html('<div class="p-3 text-muted small">No hay marcadores que coincidan con los filtros.</div>');
+                return;
+            }
+
+            const maxResults = 80;
+            const html = visibleMarkers.slice(0, maxResults).map(marker => {
+                const status = marker.visited ? '<span class="badge bg-success">Visitado</span>' : '<span class="badge bg-warning text-dark">Pendiente</span>';
+                const title = marker.description || marker.icon_name;
+                return '<div class="gm-result" data-marker-id="' + marker.id + '">' +
+                    '<img class="gm-result-icon" src="' + escapeHtml(marker.icon_url) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+                    '<div>' +
+                        '<div class="gm-result-title">' + escapeHtml(title) + '</div>' +
+                        '<div class="gm-result-subtitle">' + escapeHtml(marker.icon_name) + '</div>' +
+                    '</div>' +
+                    status +
+                '</div>';
+            }).join('');
+
+            const extra = visibleMarkers.length > maxResults
+                ? '<div class="p-2 text-center small text-muted">Mostrando ' + maxResults + ' de ' + visibleMarkers.length + ' resultados. Ajusta la búsqueda para acotar.</div>'
+                : '';
+
+            $('#gmResults').html(html + extra);
+            $('.gm-result').on('click', function(){
+                focusMarker(Number($(this).data('marker-id')));
+            });
+        }
+
+        function findMarker(id) {
+            return allMarkers.find(marker => Number(marker.id) === Number(id));
+        }
+
+        function focusMarker(id) {
+            const markerData = findMarker(id);
+            if (!markerData || !markerData.leaflet) {
+                return;
+            }
+
+            if (!map.hasLayer(markerData.leaflet)) {
+                markerData.leaflet.addTo(map);
+            }
+            map.setView(markerData.coords, Math.max(map.getZoom(), 0), {animate: true});
+            markerData.leaflet.openPopup();
+        }
+
+        async function toggleVisited(id, checked) {
+            const markerData = findMarker(id);
+            if (!markerData) {
+                return;
+            }
+
+            const previous = markerData.visited;
+            markerData.visited = checked ? 1 : 0;
+            syncMarkerVisual(markerData);
+            applyFilters();
+
+            try {
+                const result = await eel.marcar_visitado(id, checked)();
+                if (!result || result.ok === false) {
+                    markerData.visited = previous;
+                    syncMarkerVisual(markerData);
+                    applyFilters();
+                    alert(result && result.message ? result.message : 'No se pudo actualizar el marcador.');
+                }
+            } catch (error) {
+                console.error(error);
+                markerData.visited = previous;
+                syncMarkerVisual(markerData);
+                applyFilters();
+                alert('Error al actualizar el marcador.');
+            }
+        }
+
+        async function editMarker(id) {
+            const markerData = findMarker(id);
+            if (!markerData) {
+                return;
+            }
+
+            const nuevaDescripcion = prompt('Editar nota / descripción:', markerData.description || '');
+            if (nuevaDescripcion === null) {
+                return;
+            }
+
+            try {
+                const result = await eel.actualizar_marcador(id, {descri: nuevaDescripcion})();
+                if (!result || result.ok === false) {
+                    alert(result && result.message ? result.message : 'No se pudo actualizar el marcador.');
+                    return;
+                }
+                markerData.description = nuevaDescripcion;
+                markerData.leaflet.bindPopup(buildPopup(markerData));
+                applyFilters();
+                markerData.leaflet.openPopup();
+            } catch (error) {
+                console.error(error);
+                alert('Error al editar el marcador.');
+            }
+        }
+
+        async function deleteMarker(id) {
+            const markerData = findMarker(id);
+            if (!markerData) {
+                return;
+            }
+
+            if (!confirm('¿Eliminar este marcador?')) {
+                return;
+            }
+
+            try {
+                const result = await eel.eliminar_marcador(id)();
+                if (!result || result.ok === false) {
+                    alert(result && result.message ? result.message : 'No se pudo eliminar el marcador.');
+                    return;
+                }
+
+                if (map.hasLayer(markerData.leaflet)) {
+                    map.removeLayer(markerData.leaflet);
+                }
+                allMarkers = allMarkers.filter(marker => Number(marker.id) !== Number(id));
+                applyFilters();
+            } catch (error) {
+                console.error(error);
+                alert('Error al eliminar el marcador.');
+            }
+        }
+
+        function toggleMeasure() {
+            measuring = !measuring;
+            measurePoints = [];
+            $('#btnMeasure')
+                .toggleClass('btn-warning', measuring)
+                .toggleClass('btn-light', !measuring);
+
+            if (map) {
+                map.getContainer().style.cursor = measuring ? 'crosshair' : '';
+            }
+
+            $('#gmHint').text(measuring
+                ? 'Modo medición activo: haz clic en dos puntos para medir distancia.'
+                : 'Clic derecho sobre el mapa para agregar un marcador.');
+        }
+
+        function clearMeasurement(resetPoints) {
+            if (measureLayer && map) {
+                map.removeLayer(measureLayer);
+            }
+            measureLayer = null;
+            if (resetPoints) {
+                measurePoints = [];
+            }
+        }
+
+        function addMeasurePoint(latlng) {
+            measurePoints.push(latlng);
+
+            if (measurePoints.length === 1) {
+                clearMeasurement(false);
+                measureLayer = L.layerGroup().addTo(map);
+                L.circleMarker(latlng, {
+                    radius: 5,
+                    color: '#f59e0b',
+                    fillColor: '#f59e0b',
+                    fillOpacity: 1,
+                }).addTo(measureLayer);
+                $('#gmHint').text('Selecciona el segundo punto para completar la medición.');
+                return;
+            }
+
+            if (measurePoints.length >= 2) {
+                const p1 = measurePoints[0];
+                const p2 = measurePoints[1];
+                clearMeasurement(false);
+                measureLayer = L.layerGroup().addTo(map);
+
+                const distance = Math.hypot(p2.lat - p1.lat, p2.lng - p1.lng);
+                const polyline = L.polyline([p1, p2], {
+                    color: '#f59e0b',
+                    weight: 3,
+                    dashArray: '8 6',
+                }).addTo(measureLayer);
+
+                L.circleMarker(p1, {radius: 5, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 1}).addTo(measureLayer);
+                L.circleMarker(p2, {radius: 5, color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 1}).addTo(measureLayer);
+                polyline.bindTooltip(distance.toFixed(2) + ' unidades', {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'gm-measure-tooltip',
+                }).openTooltip();
+
+                measurePoints = [];
+                $('#gmHint').text('Medición lista. Puedes elegir otros dos puntos o limpiar la medida.');
+            }
+        }
+
+        function destroy() {
+            try {
+                if (map) {
+                    map.off();
+                    map.remove();
+                }
+            } catch (error) {
+                console.warn(error);
+            }
+            map = null;
+            allMarkers = [];
+            clearMeasurement(true);
+        }
+
+        return {
+            init,
+            destroy,
+            focusMarker,
+            toggleVisited,
+            editMarker,
+            deleteMarker,
+        };
+    })();
+
+    $(document).ready(function(){
+        window.GamesMap.init();
     });
 </script>

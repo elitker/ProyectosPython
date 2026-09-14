@@ -1,50 +1,114 @@
-<div>
-    <table id="lista_juegos" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>NOMBRE</th>
-                <th>RUTA</th>
-                <th>#</th>
-            </tr>
-        </thead>
-    </table>
-</div>
+<section class="container-fluid p-4">
+    <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h3 mb-1">Biblioteca de juegos</h1>
+            <p class="text-muted mb-0">Selecciona un juego para ver sus mapas interactivos.</p>
+        </div>
+        <button id="btnSincronizarJuegos" class="btn btn-primary">
+            <i class="fa-solid fa-rotate me-1"></i> Sincronizar carpeta Juegos
+        </button>
+    </div>
+
+    <div id="mensajePrincipal"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table id="lista_juegos" class="display compact" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Juego</th>
+                        <th>Ruta</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</section>
 
 <script>
-    $(document).ready(function(){
-        eel.cargar_juegos()();
-        llenar_tabla();
-    });
+    (function(){
+        let tablaJuegos = null;
 
-    function llenar_tabla(){
-        eel.obtener_juegos()()
-        .then(resData => {
-            resData;
-            tabla = $('#lista_juegos').DataTable( {
-                "data": resData,
-                "columns": [
-                    { title: "ID", visible: false},
-                    { title: "NOMBRE" },
-                    { title: "RUTA" },
-                    { title: "#" },
-                ],
-                columnDefs: [ {
-                    "targets": -1,
-                    "data": null,
-                    "defaultContent": '<button type="button" onclick=onButton(this)>Click!</button>'
-                }]
-            } );
-        });
-    };
+        function mostrarMensaje(tipo, texto) {
+            $('#mensajePrincipal').html(
+                '<div class="alert alert-' + tipo + ' alert-dismissible fade show" role="alert">' +
+                    texto +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>' +
+                '</div>'
+            );
+        }
 
-    async function onButton(e){
-        console.log($(e));
-        var data = tabla.row( $(e).parents('tr') ).data();
-        console.log('Nombre del mapa seleccionado:' + data[0]);
-        await eel.juego_seleccionado(data[0])();
-        $.get('Mapas.html').done(function (result) {
-            $("#MiBody").html(result);
+        async function sincronizarJuegos() {
+            $('#btnSincronizarJuegos').prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i> Sincronizando...');
+            try {
+                const resultado = await eel.cargar_juegos()();
+                if (resultado && resultado.ok === false) {
+                    mostrarMensaje('warning', resultado.message || 'No se pudieron sincronizar los juegos.');
+                }
+                await llenar_tabla();
+            } catch (error) {
+                console.error(error);
+                mostrarMensaje('danger', 'Ocurrió un error al sincronizar los juegos. Revisa la consola de Python.');
+            } finally {
+                $('#btnSincronizarJuegos').prop('disabled', false).html('<i class="fa-solid fa-rotate me-1"></i> Sincronizar carpeta Juegos');
+            }
+        }
+
+        async function llenar_tabla(){
+            try {
+                const resData = await eel.obtener_juegos()();
+                if (tablaJuegos) {
+                    tablaJuegos.clear().rows.add(resData).draw();
+                    return;
+                }
+
+                tablaJuegos = $('#lista_juegos').DataTable({
+                    data: resData,
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                    },
+                    columns: [
+                        { title: 'ID', visible: false },
+                        { title: 'Juego' },
+                        { title: 'Ruta' },
+                        { title: 'Acción' },
+                    ],
+                    columnDefs: [{
+                        targets: -1,
+                        data: null,
+                        orderable: false,
+                        defaultContent: '<button type="button" class="btn btn-sm btn-primary btn-seleccionar-juego"><i class="fa-solid fa-map me-1"></i> Ver mapas</button>'
+                    }]
+                });
+            } catch (error) {
+                console.error(error);
+                mostrarMensaje('danger', 'No se pudo cargar la lista de juegos.');
+            }
+        }
+
+        $('#lista_juegos').on('click', '.btn-seleccionar-juego', async function(){
+            const data = tablaJuegos.row($(this).parents('tr')).data();
+            if (!data) {
+                return;
+            }
+
+            const resultado = await eel.juego_seleccionado(data[0])();
+            if (resultado && resultado.ok === false) {
+                mostrarMensaje('warning', resultado.message || 'No se pudo seleccionar el juego.');
+                return;
+            }
+
+            $.get('Mapas.html').done(function (result) {
+                $('#MiBody').html(result);
+            });
         });
-    };
+
+        $('#btnSincronizarJuegos').on('click', sincronizarJuegos);
+
+        $(document).ready(async function(){
+            await sincronizarJuegos();
+        });
+    })();
 </script>

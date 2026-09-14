@@ -1,50 +1,99 @@
+<section class="container-fluid p-4">
+    <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+        <div>
+            <h1 class="h3 mb-1">Mapas disponibles</h1>
+            <p class="text-muted mb-0">Elige el mapa que quieres explorar.</p>
+        </div>
+        <button id="btnVolverJuegos" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i> Volver a juegos
+        </button>
+    </div>
 
+    <div id="mensajeMapas"></div>
 
-<div>
-    <table id="lista_mapas" class="display" style="width:80%">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>NOMBRE</th>
-                <th>#</th>
-            </tr>
-        </thead>
-    </table>
-</div>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table id="lista_mapas" class="display compact" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Mapa</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</section>
 
 <script>
-    $(document).ready(function(){
-        // cargar_drop();
-        llenar_tabla_con_mapas();
-    });
+    (function(){
+        let tablaMapas = null;
 
-    function llenar_tabla_con_mapas(){
-        eel.cargar_mapas()()
-        .then(resData => {
-            resData;
-            tabla = $('#lista_mapas').DataTable( {
-                "data": resData,
-                "columns": [
-                    { title: "ID", visible: false},
-                    { title: "NOMBRE" },
-                    { title: "#" },
-                ],
-                columnDefs: [ {
-                    "targets": -1,
-                    "data": null,
-                    "defaultContent": '<button type="button" onclick=onButton_Map(this)>Sel. Mapa</button>'
-                }]
-            } );
+        function mostrarMensaje(tipo, texto) {
+            $('#mensajeMapas').html(
+                '<div class="alert alert-' + tipo + ' alert-dismissible fade show" role="alert">' +
+                    texto +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>' +
+                '</div>'
+            );
+        }
+
+        async function llenar_tabla_con_mapas(){
+            try {
+                const resData = await eel.cargar_mapas()();
+                if (!resData || resData.length === 0) {
+                    mostrarMensaje('info', 'No hay mapas cargados para este juego. Revisa la carpeta Mapas y vuelve a sincronizar.');
+                }
+
+                tablaMapas = $('#lista_mapas').DataTable({
+                    data: resData,
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                    },
+                    columns: [
+                        { title: 'ID', visible: false },
+                        { title: 'Mapa' },
+                        { title: 'Acción' },
+                    ],
+                    columnDefs: [{
+                        targets: -1,
+                        data: null,
+                        orderable: false,
+                        defaultContent: '<button type="button" class="btn btn-sm btn-success btn-seleccionar-mapa"><i class="fa-solid fa-location-dot me-1"></i> Abrir mapa</button>'
+                    }]
+                });
+            } catch (error) {
+                console.error(error);
+                mostrarMensaje('danger', 'No se pudo cargar la lista de mapas.');
+            }
+        }
+
+        $('#lista_mapas').on('click', '.btn-seleccionar-mapa', async function(){
+            const data = tablaMapas.row($(this).parents('tr')).data();
+            if (!data) {
+                return;
+            }
+
+            const resultado = await eel.mapa_seleccionado(data[0])();
+            if (resultado && resultado.ok === false) {
+                mostrarMensaje('warning', resultado.message || 'No se pudo seleccionar el mapa.');
+                return;
+            }
+
+            $.get('Mapa.html').done(function (result) {
+                $('#MiBody').html(result);
+            });
         });
-    };
 
-    async function onButton_Map(e){
-        console.log($(e));
-        var data = tabla.row( $(e).parents('tr') ).data();
-        await eel.mapa_seleccionado(data[0])();
-        $.get('Mapa.html').done(function (result) {
-            $("#MiBody").html(result);
+        $('#btnVolverJuegos').on('click', function(){
+            $.get('Principal.html').done(function (result) {
+                $('#MiBody').html(result);
+            });
         });
-    };
 
+        $(document).ready(function(){
+            llenar_tabla_con_mapas();
+        });
+    })();
 </script>

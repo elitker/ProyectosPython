@@ -1,0 +1,50 @@
+<div>
+    <table id="lista_juegos" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>RUTA</th>
+                <th>#</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<script>
+    $(document).ready(function(){
+        eel.cargar_juegos()();
+        llenar_tabla();
+    });
+
+    function llenar_tabla(){
+        eel.obtener_juegos()()
+        .then(resData => {
+            resData;
+            tabla = $('#lista_juegos').DataTable( {
+                "data": resData,
+                "columns": [
+                    { title: "ID", visible: false},
+                    { title: "NOMBRE" },
+                    { title: "RUTA" },
+                    { title: "#" },
+                ],
+                columnDefs: [ {
+                    "targets": -1,
+                    "data": null,
+                    "defaultContent": '<button type="button" onclick=onButton(this)>Click!</button>'
+                }]
+            } );
+        });
+    };
+
+    async function onButton(e){
+        console.log($(e));
+        var data = tabla.row( $(e).parents('tr') ).data();
+        console.log('Nombre del mapa seleccionado:' + data[0]);
+        await eel.juego_seleccionado(data[0])();
+        $.get('Mapas.html').done(function (result) {
+            $("#MiBody").html(result);
+        });
+    };
+</script>

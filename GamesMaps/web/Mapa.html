@@ -1,0 +1,182 @@
+<style>
+    #map { height: 90vh; };
+    .myDivIcon {
+  text-align: center;
+  /* Horizontally center the text (icon) */
+  line-height: 20px;
+  /* Vertically center the text (icon) */
+  }
+
+.select2-dropdown {
+  border-radius: 0;
+  box-shadow: #444 0px 3px 5px;
+  border: 0;
+}
+</style>
+
+<div id="myModal" class="modal">
+ 
+    <!-- Modal content -->
+    <div class="modal-content" style="margin: 10%;">
+            <span class="close">&times;</span>
+            <div style="display: flex;">
+                <div>
+                    <select class="form-select" id="slIConos" is="ms-dropdown" data-child-height="350">
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="form-label" for="tbCoords">Coordenadas:</label>
+                <input class="form-control" type="text" name="Coords" id="tbCoords">
+            </div>
+            <div>
+                <label class="form-label" for="tbDescrip">Descripcion:</label>
+                <input class="form-control" type="text" name="Descripcion" id="tbDescrip">
+            </div>
+            <div style="text-align: center; padding-top: 2rem;">
+                <button class="btn-secondary btn-lg" id="btnEnviar">
+                    Guardar
+                </button>
+            </div>
+    </div>
+
+</div> 
+
+
+
+<div id="map"></div>
+
+
+
+<script>
+    var _marcadores = {};
+    function mostrar_modal(_map){
+        // Get the modal
+        var modal = document.getElementById("myModal");
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        cargar_iconos();
+
+        var _latlng = _map.latlng;
+        //LatLng(529.778744, 625)
+        var _coordenadas = new String(_latlng.lat + '|' + _latlng.lng);
+        $('#tbCoords').val(_coordenadas);
+        modal.style.display = "block";
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    };
+
+    function cargar_iconos(){
+        let datos = eel.get_iconos()()
+       .then(retData => {
+        datos = retData;
+            $.each(datos, function(i, option) {
+                $('#slIConos').append($('<option/>').attr("value", option.id).text(option.name).attr("data-image", option.image))
+            });
+       })
+       .catch(e => console.log(e));        
+    };
+
+    function param() {
+        return {
+            icono: $('#slIConos').val(),
+            coords: $('#tbCoords').val(),
+            descri: $('#tbDescrip').val()
+        }
+    };
+
+    $('#btnEnviar').click(async function () {
+        await eel.guardar_marcador(param())(function(_res){
+            console.log(_res);
+
+            if(_res !== "OK"){
+                alert('punto no agregado');
+            }
+            else{
+                $('#myModal').hide();
+                $.get('Mapa.html').done(function (result) {
+                    $("#MiBody").html(result);
+                });
+            }
+
+        });
+    });
+
+    async function cargar_marcadores_base(){
+        var _m = await eel.get_marcadores()(function(_marks){
+            _marks.forEach(d => {
+                console.log('dimensiones: ' + d[4]);
+                var LeafIcon = L.icon({
+                                iconUrl: d[0],
+                                iconSize:     d[4], // size of the icon
+                                shadowSize:   d[4], // size of the shadow
+                            });
+                __visited = d[2];
+                __id_point = d[3];
+                console.log('visited=' + __visited);
+                console.log('id_point=' + __id_point);
+                var popup = L.popup().setContent(
+                    '<input type="checkbox" aria-label="check" id="cb_'+__id_point+'" onchange="Opacidad(this)"><p> Visitado</p>'
+                );
+                var marker = L.marker([d[1][0], d[1][1]], {icon: LeafIcon, alt: __id_point});
+                // var marker = L.marker([d[1][0], d[1][1]], {icon: redMarker, alt: __id_point});
+                marker.bindPopup(popup);
+                if(__visited === 0){
+                    marker.setOpacity(1);
+                }
+                else{
+                    marker.setOpacity(0.4);
+                }
+                marker.addTo(map);
+                _marcadores[__id_point] = marker;
+            });
+        });
+    };
+
+    async function Opacidad(elem){
+        var seleccionado = $(elem).prop('checked');
+        var _id_marcador = $(elem).prop('id');
+        let split = _id_marcador.split('_');
+        _id_marcador = split[1];
+        await eel.marcar_visitado(_id_marcador)();
+        var marker = _marcadores[_id_marcador];
+        if(seleccionado){
+            marker.setOpacity(0.4);
+        }
+        else{
+            marker.setOpacity(1);
+        }
+    };
+
+    $(document).ready(async function() {
+        var __ruta;
+        var datos = await eel.ruta_mapa()()
+        .then(data => {
+            __ruta = data;
+        }).catch(e => console.log(e));
+
+        map = L.map('map', {
+            crs: L.CRS.Simple
+        });
+        var bounds = [[0,0], [1000,1000]];
+        var image = L.imageOverlay(__ruta, bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        cargar_marcadores_base();
+
+        map.on('contextmenu', mostrar_modal);
+
+        delete _marcadores;
+    });
+</script>

@@ -1,0 +1,50 @@
+
+
+<div>
+    <table id="lista_mapas" class="display" style="width:80%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>NOMBRE</th>
+                <th>#</th>
+            </tr>
+        </thead>
+    </table>
+</div>
+
+<script>
+    $(document).ready(function(){
+        // cargar_drop();
+        llenar_tabla_con_mapas();
+    });
+
+    function llenar_tabla_con_mapas(){
+        eel.cargar_mapas()()
+        .then(resData => {
+            resData;
+            tabla = $('#lista_mapas').DataTable( {
+                "data": resData,
+                "columns": [
+                    { title: "ID", visible: false},
+                    { title: "NOMBRE" },
+                    { title: "#" },
+                ],
+                columnDefs: [ {
+                    "targets": -1,
+                    "data": null,
+                    "defaultContent": '<button type="button" onclick=onButton_Map(this)>Sel. Mapa</button>'
+                }]
+            } );
+        });
+    };
+
+    async function onButton_Map(e){
+        console.log($(e));
+        var data = tabla.row( $(e).parents('tr') ).data();
+        await eel.mapa_seleccionado(data[0])();
+        $.get('Mapa.html').done(function (result) {
+            $("#MiBody").html(result);
+        });
+    };
+
+</script>
